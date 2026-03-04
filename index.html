@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mikra AI - Professional Typesetting</title>
+    <title>Mikra AI - Professional Typesetting System</title>
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Mammoth.js for Word Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <style>
         :root {
-            /* מידות מדויקות לפי בקשת ביינוש */
+            /* מידות מדויקות - ביינוש קרליבך */
             --p-width: 16.7cm;
             --p-height: 23.6cm;
             --m-side: 2cm;
             --col-w: 6.1cm;
             --col-gap: 0.5cm;
-            --content-w: 12.7cm; /* 6.1 + 0.5 + 6.1 */
+            --content-w: 12.7cm;
             
             --bg-ui: #0f172a;
             --accent: #b08d57;
+            --sidebar-w: 400px;
         }
 
         * { box-sizing: border-box; }
@@ -35,7 +39,7 @@
 
         /* Sidebar UI */
         .sidebar {
-            width: 400px;
+            width: var(--sidebar-w);
             background: var(--bg-ui);
             display: flex;
             flex-direction: column;
@@ -61,7 +65,7 @@
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-size: 13px; margin-bottom: 5px; opacity: 0.8; }
         
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.2);
@@ -80,6 +84,24 @@
             font-weight: 700;
             cursor: pointer;
             margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-main:hover { filter: brightness(1.1); }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        #file-input {
+            position: absolute;
+            left: 0; top: 0; opacity: 0; width: 100%; height: 100%;
+            cursor: pointer;
         }
 
         /* Preview Area */
@@ -89,7 +111,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
             padding: 40px;
             overflow-y: auto;
         }
@@ -98,7 +119,7 @@
             width: var(--p-width);
             height: var(--p-height);
             background: white;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
             padding: 1.5cm var(--m-side);
             color: #1a1a1a;
             display: flex;
@@ -123,7 +144,7 @@
         .header-part { width: var(--col-w); text-align: center; }
         .header-gap { width: var(--col-gap); text-align: center; font-size: 12px; }
 
-        .page-num { position: absolute; top: 1.8cm; }
+        .page-num { position: absolute; top: 1.8cm; font-family: 'Frank Ruhl Libre', serif; font-weight: 700; }
 
         /* Content Layout */
         .content-body {
@@ -146,14 +167,7 @@
         }
 
         .vilna { font-size: 14pt; font-weight: 700; margin-left: 4px; }
-        
-        /* מנגנון החלון בשורה השנייה */
-        .window-spacer {
-            float: right;
-            clear: right;
-            height: 1.45em; /* גובה שורה ראשונה */
-            width: 48px; /* רוחב החלון */
-        }
+        .window-spacer { float: right; clear: right; height: 1.45em; width: 48px; }
 
         .view-toggle {
             display: flex;
@@ -167,14 +181,21 @@
         }
         .view-toggle button.active { background: var(--accent); }
 
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+
     </style>
 </head>
 <body>
 
+<div id="loading" class="loading-overlay"><i class="fa-solid fa-spinner fa-spin fa-3x"></i></div>
+
 <aside class="sidebar">
     <div class="logo-section">
-        <div style="font-size: 20px; font-weight: 700; color: var(--accent);">מקרא AI - פאנל ניהול</div>
-        <div style="font-size: 12px; opacity: 0.6;">גרסה 2.6 | ביינוש קרליבך</div>
+        <div style="font-size: 20px; font-weight: 700; color: var(--accent);">מקרא AI - גרסת Word</div>
+        <div style="font-size: 12px; opacity: 0.6;">גרסה 3.0 | פיתוח עבור ביינוש קרליבך</div>
     </div>
 
     <div class="view-toggle">
@@ -182,24 +203,30 @@
         <button id="btn-left" onclick="setSide('left')">עמוד שמאל (פא)</button>
     </div>
 
+    <div class="section-title">פעולות מהירות</div>
+    <div class="file-input-wrapper">
+        <button class="btn-main" style="width: 100%;"><i class="fa-solid fa-file-word"></i> טען קובץ Word (.docx)</button>
+        <input type="file" id="file-input" accept=".docx">
+    </div>
+
     <div class="section-title">פרטי הספר</div>
     <div class="input-group">
         <label>שם הספר (מילה 1 + מילה 2)</label>
         <div style="display: flex; gap: 10px;">
-            <input type="text" id="w1" value="בנין">
-            <input type="text" id="w2" value="ציון">
+            <input type="text" id="w1" value="בנין" oninput="render()">
+            <input type="text" id="w2" value="ציון" oninput="render()">
         </div>
     </div>
 
-    <div class="section-title">טקסט גולמי</div>
-    <textarea id="text-input" style="height: 300px;" oninput="render()">סימן י
+    <div class="section-title">טקסט לעיבוד</div>
+    <textarea id="text-input" style="height: 250px;" oninput="render()">סימן י
 בענין ראוה מדברת
 גרסינן בגמרא כתובות (דף י"ג) ראוה מדברת עם אחד ואמרו לה מה טיבו של זה, איש פלוני וכהן הוא. רבן גמליאל ורבי אליעזר אומרים נאמנת, ורבי יהושע אומר אינה נאמנת.
 והנה יש לחקור ביסוד מחלוקתם, האם פליגי בדין 'ברי ושמא' או דלמא פליגי בדין נאמנות האשה להעיד על עצמה במקום שאין לה מגו.
 ביאור שיטת רבן גמליאל
 ובאמת בתוספות שם הקשו למה הוצרכו לומר שנאמנת מטעם הפה שאסור, והרי בלאו הכי יש לה חזקת כשרות. ונראה לומר דכל היכא דאיתחזק איסורא לא סמכינן אדיבורה בלא מגו.</textarea>
 
-    <button class="btn-main" onclick="render()">עמד מחדש</button>
+    <button class="btn-main" onclick="render()">עדכן עימוד ידני</button>
 </aside>
 
 <main class="preview-area">
@@ -211,6 +238,30 @@
 
 <script>
     let currentSide = 'right';
+
+    // Handle Word File Import
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        document.getElementById('loading').style.display = 'flex';
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            mammoth.extractRawText({arrayBuffer: arrayBuffer})
+                .then(function(result) {
+                    document.getElementById('text-input').value = result.value;
+                    render();
+                    document.getElementById('loading').style.display = 'none';
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    document.getElementById('loading').style.display = 'none';
+                });
+        };
+        reader.readAsArrayBuffer(file);
+    });
 
     function setSide(side) {
         currentSide = side;
@@ -230,19 +281,19 @@
         let subject = "";
 
         lines.forEach((line, i) => {
+            line = line.trim();
             if (line.includes("סימן")) {
                 siman = line;
                 html += `<div class="siman-title">${line}</div>`;
-            } else if (i > 0 && lines[i-1].includes("סימן") && line.length < 50) {
+            } else if (i < 5 && line.length < 50 && !line.includes(".") && !line.includes(",")) {
                 subject = line;
                 html += `<div class="main-title">${line}</div>`;
             } else if (line.length < 35 && !line.includes(".") && !line.includes(",")) {
-                html += `<div style="text-align:center; font-weight:700; margin:15px 0; break-inside:avoid;">${line}</div>`;
+                html += `<div style="text-align:center; font-weight:700; margin:15px 0; break-inside:avoid; font-family:'Frank Ruhl Libre'; font-size:19px;">${line}</div>`;
             } else {
                 const words = line.split(" ");
                 const first = words[0];
                 const rest = words.slice(1).join(" ");
-                // חלון שורה שנייה - דינמי לפי אורך מילה ראשונה
                 const winWidth = Math.max(45, first.length * 9);
                 html += `<div class="paragraph"><div class="window-spacer" style="width:${winWidth}px"></div><span class="vilna">${first}</span> ${rest}</div>`;
             }
@@ -250,7 +301,6 @@
 
         document.getElementById('content').innerHTML = html;
 
-        // Header Logic
         const header = document.getElementById('header');
         const pNum = currentSide === 'right' ? 'פ' : 'פא';
         const numPos = currentSide === 'right' ? 'right: 2cm' : 'left: 2cm';
@@ -266,7 +316,7 @@
             header.innerHTML = `
                 <div class="page-num" style="${numPos}">${pNum}</div>
                 <div class="header-part">${w2}</div>
-                <div class="header-gap">${subject}</div>
+                <div class="header-gap" style="font-size:13px">${subject || '...'}</div>
                 <div class="header-part">${w1}</div>
             `;
         }
