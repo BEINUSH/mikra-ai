@@ -28,9 +28,10 @@
             --m-top: 1.5cm;
             --m-bottom: 1.5cm;
             --m-side: 2cm;
-            --col-w: 6.1cm;
+            --col-count: 2;
             --col-gap: 0.5cm;
             --content-w: 12.7cm;
+            --col-w: 6.1cm;
             --header-h: 1.2cm;
             --header-mb: 1.0cm;
 
@@ -41,6 +42,12 @@
             --siman-size: 18px;
             --subtitle-size: 19px;
             --first-word-size: 14pt;
+
+            /* Running header */
+            --rh-font-size: 14px;
+            --rh-font-weight: 700;
+            --rh-border-width: 0.5pt;
+            --rh-visible: flex;
 
             /* UI Colors */
             --bg-primary: #0b1120;
@@ -507,7 +514,7 @@
             height: var(--p-height);
             background: white;
             box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.1);
-            padding: var(--m-top) var(--m-side) var(--m-bottom);
+            padding: var(--m-top) var(--m-side) var(--m-bottom) var(--m-side);
             color: #1a1a1a;
             position: relative;
             flex-shrink: 0;
@@ -532,29 +539,28 @@
         .running-header {
             width: var(--content-w);
             height: var(--header-h);
-            border-bottom: 0.5pt solid #000;
+            border-bottom: var(--rh-border-width) solid #000;
             margin-bottom: var(--header-mb);
-            display: flex;
+            display: var(--rh-visible);
             align-items: center;
             font-family: 'Frank Ruhl Libre', serif;
-            font-size: 14px;
-            font-weight: 700;
+            font-size: var(--rh-font-size);
+            font-weight: var(--rh-font-weight);
         }
-        .header-part { width: var(--col-w); text-align: center; }
-        .header-gap { width: var(--col-gap); text-align: center; font-size: 11px; }
+        .header-part { flex: 1; text-align: center; }
+        .header-gap { width: var(--col-gap); text-align: center; font-size: calc(var(--rh-font-size) - 3px); white-space: nowrap; }
         .page-num {
             position: absolute;
             top: 1.6cm;
             font-family: 'Frank Ruhl Libre', serif;
-            font-weight: 700;
-            font-size: 13px;
+            font-weight: var(--rh-font-weight);
+            font-size: calc(var(--rh-font-size) - 1px);
         }
 
         /* Content */
         .content-body {
             width: var(--content-w);
-            column-count: 2;
-            column-width: var(--col-w);
+            column-count: var(--col-count);
             column-gap: var(--col-gap);
             column-rule: none;
             text-align: justify;
@@ -605,11 +611,13 @@
         .paragraph .ref-highlight {
             color: #1a5276;
         }
+        /* חלון בנין ציון הפוך - window on 2nd line under bold word */
         .window-spacer {
             float: right;
             clear: right;
-            height: 1.45em;
             width: 50px;
+            height: calc(var(--line-height) * 1em * 2);
+            shape-outside: inset(calc(var(--line-height) * 1em) 0 0 0);
         }
 
         /* ========== Status Bar ========== */
@@ -895,6 +903,25 @@
                     <label>רווח בין טורים (ס"מ)</label>
                     <input type="number" id="col-gap" value="0.5" step="0.1" min="0.2" max="2" onchange="updatePageDimensions()">
                 </div>
+                <div class="input-row">
+                    <label>שוליים עליונים (ס"מ)</label>
+                    <input type="number" id="margin-top" value="1.5" step="0.1" min="0.5" max="5" onchange="updatePageDimensions()">
+                </div>
+                <div class="input-row">
+                    <label>שוליים תחתונים (ס"מ)</label>
+                    <input type="number" id="margin-bottom" value="1.5" step="0.1" min="0.5" max="5" onchange="updatePageDimensions()">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-columns"></i> טורים</div>
+                <div class="input-row">
+                    <label>מספר טורים</label>
+                    <select id="col-count" onchange="updateColumnCount(this.value)">
+                        <option value="1">טור אחד</option>
+                        <option value="2" selected>שני טורים</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -951,6 +978,54 @@
                         <option value="'David Libre', serif">David Libre</option>
                         <option value="serif">Serif (ברירת מחדל)</option>
                     </select>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-window-maximize"></i> כותרת רצה (Header)</div>
+                <div class="input-row">
+                    <label>הצגת כותרת רצה</label>
+                    <select id="rh-visible" onchange="updateRunningHeader('rh-visible', this.value === 'flex' ? 'flex' : 'none', null)">
+                        <option value="flex" selected>מוצגת</option>
+                        <option value="none">מוסתרת</option>
+                    </select>
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>גודל פונט כותרת</span>
+                        <span class="slider-value" id="val-rh-fontsize">14px</span>
+                    </div>
+                    <input type="range" min="10" max="24" step="1" value="14" oninput="updateRunningHeader('rh-font-size', this.value + 'px', 'val-rh-fontsize')">
+                </div>
+                <div class="input-row">
+                    <label>משקל פונט כותרת</label>
+                    <select id="rh-weight" onchange="updateRunningHeader('rh-font-weight', this.value, null)">
+                        <option value="400">רגיל</option>
+                        <option value="500">בינוני</option>
+                        <option value="700" selected>מודגש</option>
+                        <option value="900">כבד מאוד</option>
+                    </select>
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>עובי קו תחתון</span>
+                        <span class="slider-value" id="val-rh-border">0.5pt</span>
+                    </div>
+                    <input type="range" min="0" max="3" step="0.25" value="0.5" oninput="updateRunningHeader('rh-border-width', this.value + 'pt', 'val-rh-border')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>גובה כותרת (ס"מ)</span>
+                        <span class="slider-value" id="val-rh-height">1.2cm</span>
+                    </div>
+                    <input type="range" min="0.5" max="3" step="0.1" value="1.2" oninput="updateRunningHeader('header-h', this.value + 'cm', 'val-rh-height')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>רווח מתחת לכותרת (ס"מ)</span>
+                        <span class="slider-value" id="val-rh-mb">1.0cm</span>
+                    </div>
+                    <input type="range" min="0.2" max="3" step="0.1" value="1.0" oninput="updateRunningHeader('header-mb', this.value + 'cm', 'val-rh-mb')">
                 </div>
             </div>
         </div>
@@ -1011,6 +1086,9 @@
             </button>
             <div style="flex:1"></div>
             <span class="page-info" id="dimensions-info">16.7×23.6 ס"מ | 2 טורים</span>
+            <button class="page-nav-btn" onclick="updateColumnCount(document.getElementById('col-count').value === '2' ? '1' : '2'); document.getElementById('col-count').value = document.getElementById('col-count').value === '2' ? '1' : '2';" data-tooltip="החלפת טורים" style="margin-right: 4px;">
+                <i class="fa-solid fa-columns"></i>
+            </button>
         </div>
 
         <div class="pages-container" id="pages-container">
@@ -1285,7 +1363,8 @@
             const firstWord = words[0];
             const rest = words.slice(1).join(' ');
             const processedRest = this.highlightReferences(rest);
-            const winWidth = Math.max(50, firstWord.length * 10);
+            // Hebrew chars are wider, calculate based on first-word-size
+            const winWidth = Math.max(40, firstWord.length * 12 + 8);
 
             return `<div class="paragraph"><div class="window-spacer" style="width:${winWidth}px"></div><span class="first-word">${this.escapeHTML(firstWord)}</span> ${processedRest}</div>`;
         },
@@ -1309,16 +1388,16 @@
 
             // Determine if this is a right or left page
             const actualPageNum = startPageNum + pageNum - 1;
-            const isRight = actualPageNum % 2 === 0;
+            const isRight = actualPageNum % 2 !== 0;
             const effectiveSide = isRight ? 'right' : 'left';
 
             const hebrewNum = HebrewUtils.numToHebrew(actualPageNum);
-            const numPos = effectiveSide === 'right' ? 'right: 2cm' : 'left: 2cm';
+            const numPos = effectiveSide === 'right' ? 'right: var(--m-side)' : 'left: var(--m-side)';
 
             // Label
             const label = document.createElement('div');
             label.className = 'page-label';
-            label.textContent = `עמוד ${pageNum}`;
+            label.textContent = `עמוד ${pageNum} (${hebrewNum})`;
             pageDiv.appendChild(label);
 
             // Header
@@ -1336,7 +1415,7 @@
                 header.innerHTML = `
                     <div class="page-num" style="${numPos}">${hebrewNum}</div>
                     <div class="header-part">${this.escapeHTML(w2)}</div>
-                    <div class="header-gap" style="font-size:12px">${this.escapeHTML(subjectText || '...')}</div>
+                    <div class="header-gap">${this.escapeHTML(subjectText || '')}</div>
                     <div class="header-part">${this.escapeHTML(w1)}</div>
                 `;
             }
@@ -1498,23 +1577,42 @@
 
     // Page dimensions
     window.updatePageDimensions = function() {
-        const w = document.getElementById('page-width').value;
-        const h = document.getElementById('page-height').value;
-        const m = document.getElementById('margin-side').value;
-        const g = document.getElementById('col-gap').value;
+        const w = parseFloat(document.getElementById('page-width').value);
+        const h = parseFloat(document.getElementById('page-height').value);
+        const m = parseFloat(document.getElementById('margin-side').value);
+        const g = parseFloat(document.getElementById('col-gap').value);
+        const mt = parseFloat(document.getElementById('margin-top').value);
+        const mb = parseFloat(document.getElementById('margin-bottom').value);
+        const colCount = parseInt(document.getElementById('col-count').value);
         const contentW = (w - 2 * m).toFixed(1);
-        const colW = ((contentW - g) / 2).toFixed(1);
+        const colW = colCount === 1 ? contentW : ((contentW - g) / 2).toFixed(1);
 
         document.documentElement.style.setProperty('--p-width', w + 'cm');
         document.documentElement.style.setProperty('--p-height', h + 'cm');
         document.documentElement.style.setProperty('--m-side', m + 'cm');
+        document.documentElement.style.setProperty('--m-top', mt + 'cm');
+        document.documentElement.style.setProperty('--m-bottom', mb + 'cm');
         document.documentElement.style.setProperty('--col-gap', g + 'cm');
         document.documentElement.style.setProperty('--content-w', contentW + 'cm');
         document.documentElement.style.setProperty('--col-w', colW + 'cm');
+        document.documentElement.style.setProperty('--col-count', colCount);
 
         document.getElementById('dimensions-info').textContent =
-            `${w}×${h} ס"מ | 2 טורים`;
+            `${w}×${h} ס"מ | ${colCount === 1 ? 'טור אחד' : '2 טורים'}`;
 
+        processAndRender();
+    };
+
+    // Column count
+    window.updateColumnCount = function(val) {
+        document.documentElement.style.setProperty('--col-count', val);
+        updatePageDimensions();
+    };
+
+    // Running header controls
+    window.updateRunningHeader = function(prop, value, displayId) {
+        document.documentElement.style.setProperty(`--${prop}`, value);
+        if (displayId) document.getElementById(displayId).textContent = value;
         processAndRender();
     };
 
