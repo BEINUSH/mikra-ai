@@ -3,326 +3,1814 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mikra AI - Professional Typesetting System</title>
-    <!-- Fonts & Icons -->
+    <title>Mikra AI - מערכת עימוד חכמה מבוססת AI</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Frank+Ruhl+Libre:wght@400;500;700;900&family=David+Libre:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Mammoth.js for Word Import -->
+
+    <!-- Mammoth.js for Word import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <!-- html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
+        /* ========== CSS Variables ========== */
         :root {
-            /* מידות מדויקות - ביינוש קרליבך */
+            /* Page dimensions - Beinush Karlibach specs */
             --p-width: 16.7cm;
             --p-height: 23.6cm;
+            --m-top: 1.5cm;
+            --m-bottom: 1.5cm;
             --m-side: 2cm;
             --col-w: 6.1cm;
             --col-gap: 0.5cm;
             --content-w: 12.7cm;
-            
-            --bg-ui: #0f172a;
-            --accent: #b08d57;
-            --sidebar-w: 400px;
+            --header-h: 1.2cm;
+            --header-mb: 1.0cm;
+
+            /* Typography defaults */
+            --font-size: 12.5pt;
+            --line-height: 1.45;
+            --title-size: 30px;
+            --siman-size: 18px;
+            --subtitle-size: 19px;
+            --first-word-size: 14pt;
+
+            /* UI Colors */
+            --bg-primary: #0b1120;
+            --bg-secondary: #111827;
+            --bg-surface: #1a2236;
+            --bg-hover: #243049;
+            --accent: #c9a84c;
+            --accent-dim: rgba(201, 168, 76, 0.15);
+            --accent-glow: rgba(201, 168, 76, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+            --border: rgba(255,255,255,0.08);
+            --border-accent: rgba(201, 168, 76, 0.3);
+            --danger: #ef4444;
+            --success: #22c55e;
+            --info: #3b82f6;
+
+            /* UI Dimensions */
+            --sidebar-w: 380px;
+            --toolbar-h: 48px;
+            --statusbar-h: 32px;
         }
 
-        * { box-sizing: border-box; }
-        body { 
-            margin: 0; 
-            font-family: 'Assistant', sans-serif; 
-            background-color: #1e293b;
-            display: flex;
+        /* ========== Reset & Base ========== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Assistant', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
-            color: white;
-        }
-
-        /* Sidebar UI */
-        .sidebar {
-            width: var(--sidebar-w);
-            background: var(--bg-ui);
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
-            border-left: 1px solid rgba(255,255,255,0.1);
         }
 
-        .logo-section {
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        /* ========== App Header ========== */
+        .app-header {
+            height: var(--toolbar-h);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            z-index: 100;
         }
 
-        .section-title {
-            font-size: 14px;
+        .app-logo {
+            font-weight: 800;
+            font-size: 16px;
             color: var(--accent);
-            margin: 15px 0 10px 0;
-            font-weight: 700;
-            text-transform: uppercase;
+            margin-left: 16px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 13px; margin-bottom: 5px; opacity: 0.8; }
-        
-        input, textarea, select {
-            width: 100%;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.2);
+        .app-logo .version {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-dim);
+            background: var(--accent-dim);
+            padding: 2px 6px;
             border-radius: 4px;
-            padding: 10px;
-            color: white;
-            font-family: inherit;
         }
 
-        .btn-main {
-            background: var(--accent);
-            color: white;
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 8px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .toolbar-btn {
+            background: transparent;
             border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-weight: 700;
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-top: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            transition: 0.2s;
-        }
-
-        .btn-main:hover { filter: brightness(1.1); }
-
-        .file-input-wrapper {
+            font-size: 14px;
+            transition: all 0.15s;
             position: relative;
-            margin-top: 10px;
         }
-
-        #file-input {
+        .toolbar-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .toolbar-btn.active { background: var(--accent-dim); color: var(--accent); }
+        .toolbar-btn[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
             position: absolute;
-            left: 0; top: 0; opacity: 0; width: 100%; height: 100%;
-            cursor: pointer;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 200;
+            border: 1px solid var(--border);
         }
 
-        /* Preview Area */
-        .preview-area {
-            flex-grow: 1;
-            background: #cbd5e1;
+        .toolbar-spacer { flex: 1; }
+
+        .zoom-display {
+            font-size: 12px;
+            color: var(--text-secondary);
+            min-width: 40px;
+            text-align: center;
+            user-select: none;
+        }
+
+        /* ========== Main Layout ========== */
+        .app-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ========== Sidebar ========== */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary);
+        }
+        .sidebar-tab {
+            flex: 1;
+            padding: 10px 4px;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 11px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 40px;
-            overflow-y: auto;
+            gap: 3px;
+            font-family: inherit;
+        }
+        .sidebar-tab i { font-size: 14px; }
+        .sidebar-tab:hover { color: var(--text-secondary); background: var(--bg-hover); }
+        .sidebar-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: var(--bg-secondary);
         }
 
-        .page {
-            width: var(--p-width);
-            height: var(--p-height);
-            background: white;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
-            padding: 1.5cm var(--m-side);
+        .tab-panel {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .tab-panel.active { display: block; }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+        .panel-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-section-title i { font-size: 10px; }
+
+        /* Form Controls */
+        .input-row {
+            margin-bottom: 12px;
+        }
+        .input-row label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .input-row input, .input-row select, .input-row textarea {
+            width: 100%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        .input-row input:focus, .input-row select:focus, .input-row textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+        .input-row textarea {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.5;
+        }
+        .input-row .dual-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Slider Control */
+        .slider-row {
+            margin-bottom: 14px;
+        }
+        .slider-row .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .slider-row .slider-value {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .slider-row input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--bg-hover);
+            outline: none;
+        }
+        .slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: none;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .btn-primary {
+            background: var(--accent);
             color: #1a1a1a;
+        }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--bg-hover); border-color: var(--accent); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+        .btn-ghost:hover { color: var(--text-primary); background: var(--bg-surface); }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .drop-zone i { font-size: 28px; color: var(--accent); margin-bottom: 8px; display: block; }
+        .drop-zone .drop-text { font-size: 13px; color: var(--text-secondary); }
+        .drop-zone .drop-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* AI Analysis Panel */
+        .ai-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .ai-stat-card {
+            background: var(--bg-surface);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .ai-stat-card .stat-value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        .ai-stat-card .stat-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        .ai-segments {
             display: flex;
             flex-direction: column;
+            gap: 4px;
+        }
+        .ai-segment {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: var(--bg-surface);
+            border-radius: 6px;
+            font-size: 12px;
+            border-right: 3px solid transparent;
+        }
+        .ai-segment.type-siman { border-right-color: #f59e0b; }
+        .ai-segment.type-subject { border-right-color: #8b5cf6; }
+        .ai-segment.type-subtitle { border-right-color: #3b82f6; }
+        .ai-segment.type-paragraph { border-right-color: #22c55e; }
+        .ai-segment .seg-type {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            min-width: 42px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .type-siman .seg-type { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .type-subject .seg-type { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+        .type-subtitle .seg-type { background: rgba(59,130,246,0.15); color: #3b82f6; }
+        .type-paragraph .seg-type { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .ai-segment .seg-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-secondary);
+        }
+
+        .ai-refs {
+            margin-top: 12px;
+        }
+        .ai-ref-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .ai-ref-item i { color: var(--info); font-size: 10px; }
+
+        /* ========== Workspace ========== */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             position: relative;
         }
 
-        /* Running Header - הקותרת */
+        .workspace-toolbar {
+            height: 36px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+        }
+        .workspace-toolbar .page-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .workspace-toolbar .page-info strong {
+            color: var(--accent);
+        }
+
+        .page-nav-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+        .page-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .page-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+        .pages-container {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            gap: 40px;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(201,168,76,0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(59,130,246,0.03) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        /* ========== Page Styles ========== */
+        .page {
+            width: var(--p-width);
+            min-height: var(--p-height);
+            height: var(--p-height);
+            background: white;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.1);
+            padding: var(--m-top) var(--m-side) var(--m-bottom);
+            color: #1a1a1a;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+            transform-origin: top center;
+            transition: transform 0.2s;
+        }
+
+        .page-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--text-dim);
+            background: var(--bg-surface);
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+
+        /* Running Header */
         .running-header {
             width: var(--content-w);
-            height: 1.2cm;
-            border-bottom: 0.5px solid #000;
-            margin-bottom: 1.2cm;
+            height: var(--header-h);
+            border-bottom: 0.5pt solid #000;
+            margin-bottom: var(--header-mb);
             display: flex;
             align-items: center;
             font-family: 'Frank Ruhl Libre', serif;
             font-size: 14px;
             font-weight: 700;
         }
-
-        /* מירכוז מדויק מעל הטורים */
         .header-part { width: var(--col-w); text-align: center; }
-        .header-gap { width: var(--col-gap); text-align: center; font-size: 12px; }
+        .header-gap { width: var(--col-gap); text-align: center; font-size: 11px; }
+        .page-num {
+            position: absolute;
+            top: 1.6cm;
+            font-family: 'Frank Ruhl Libre', serif;
+            font-weight: 700;
+            font-size: 13px;
+        }
 
-        .page-num { position: absolute; top: 1.8cm; font-family: 'Frank Ruhl Libre', serif; font-weight: 700; }
-
-        /* Content Layout */
+        /* Content */
         .content-body {
             width: var(--content-w);
             column-count: 2;
             column-width: var(--col-w);
             column-gap: var(--col-gap);
+            column-rule: none;
             text-align: justify;
+            height: calc(var(--p-height) - var(--m-top) - var(--m-bottom) - var(--header-h) - var(--header-mb));
+            overflow: hidden;
         }
 
-        .siman-title { font-family: 'Frank Ruhl Libre', serif; font-size: 18px; font-weight: 700; margin-bottom: 5px; text-align: center; }
-        .main-title { font-family: 'Frank Ruhl Libre', serif; font-size: 30px; font-weight: 700; margin-bottom: 35px; text-align: center; }
+        .siman-title {
+            font-family: 'Frank Ruhl Libre', serif;
+            font-size: var(--siman-size);
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-align: center;
+            break-inside: avoid;
+            break-after: avoid;
+        }
+        .main-title {
+            font-family: 'Frank Ruhl Libre', serif;
+            font-size: var(--title-size);
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            break-inside: avoid;
+        }
+        .section-subtitle {
+            text-align: center;
+            font-weight: 700;
+            margin: 12px 0 8px;
+            break-inside: avoid;
+            break-after: avoid;
+            font-family: 'Frank Ruhl Libre', serif;
+            font-size: var(--subtitle-size);
+        }
 
         .paragraph {
             font-family: 'Frank Ruhl Libre', serif;
-            font-size: 12.5pt;
-            line-height: 1.45;
-            margin-bottom: 12px;
+            font-size: var(--font-size);
+            line-height: var(--line-height);
+            margin-bottom: 10px;
             position: relative;
+            break-inside: auto;
+        }
+        .paragraph .first-word {
+            font-size: var(--first-word-size);
+            font-weight: 700;
+            margin-left: 3px;
+        }
+        .paragraph .ref-highlight {
+            color: #1a5276;
+        }
+        .window-spacer {
+            float: right;
+            clear: right;
+            height: 1.45em;
+            width: 50px;
         }
 
-        .vilna { font-size: 14pt; font-weight: 700; margin-left: 4px; }
-        .window-spacer { float: right; clear: right; height: 1.45em; width: 48px; }
-
-        .view-toggle {
+        /* ========== Status Bar ========== */
+        .status-bar {
+            height: var(--statusbar-h);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
             display: flex;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 4px;
-            margin-bottom: 20px;
+            align-items: center;
+            padding: 0 16px;
+            font-size: 11px;
+            color: var(--text-dim);
+            gap: 16px;
         }
-        .view-toggle button {
-            flex: 1; border: none; background: transparent; color: white; padding: 8px; cursor: pointer; border-radius: 6px;
+        .status-bar .status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        .view-toggle button.active { background: var(--accent); }
+        .status-bar .status-item i { font-size: 10px; }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+        }
 
+        /* ========== Loading Overlay ========== */
         .loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .loading-overlay.visible { display: flex; }
+        .loading-content {
+            text-align: center;
+        }
+        .loading-content i { font-size: 36px; color: var(--accent); margin-bottom: 12px; }
+        .loading-content p { color: var(--text-secondary); font-size: 14px; }
+
+        /* ========== Toast Notifications ========== */
+        .toast-container {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+        .toast {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.success { border-right: 3px solid var(--success); }
+        .toast.error { border-right: 3px solid var(--danger); }
+        .toast.info { border-right: 3px solid var(--info); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateY(-10px); }
         }
 
+        /* ========== Side Toggle ========== */
+        .side-toggle {
+            display: flex;
+            background: var(--bg-surface);
+            border-radius: 6px;
+            padding: 2px;
+            border: 1px solid var(--border);
+        }
+        .side-toggle button {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .side-toggle button.active {
+            background: var(--accent);
+            color: #1a1a1a;
+        }
+
+        /* ========== Print Styles ========== */
+        @media print {
+            body { background: white; }
+            .app-header, .sidebar, .workspace-toolbar, .status-bar,
+            .page-label, .toast-container, .loading-overlay { display: none !important; }
+            .workspace, .pages-container {
+                display: block !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+            .page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                page-break-after: always;
+            }
+            .page:last-child { page-break-after: auto; }
+        }
+
+        /* ========== Responsive ========== */
+        @media (max-width: 1200px) {
+            :root { --sidebar-w: 320px; }
+        }
     </style>
 </head>
 <body>
 
-<div id="loading" class="loading-overlay"><i class="fa-solid fa-spinner fa-spin fa-3x"></i></div>
-
-<aside class="sidebar">
-    <div class="logo-section">
-        <div style="font-size: 20px; font-weight: 700; color: var(--accent);">מקרא AI - גרסת Word</div>
-        <div style="font-size: 12px; opacity: 0.6;">גרסה 3.0 | פיתוח עבור ביינוש קרליבך</div>
+<!-- ==================== App Header ==================== -->
+<header class="app-header">
+    <div class="app-logo">
+        <i class="fa-solid fa-book-open"></i>
+        מקרא AI
+        <span class="version">v4.0</span>
     </div>
 
-    <div class="view-toggle">
-        <button id="btn-right" class="active" onclick="setSide('right')">עמוד ימין (פ)</button>
-        <button id="btn-left" onclick="setSide('left')">עמוד שמאל (פא)</button>
+    <div class="toolbar-divider"></div>
+
+    <!-- File Operations -->
+    <div class="toolbar-group">
+        <button class="toolbar-btn" data-tooltip="ייבוא Word" onclick="document.getElementById('file-input-hidden').click()">
+            <i class="fa-solid fa-file-import"></i>
+        </button>
+        <input type="file" id="file-input-hidden" accept=".docx,.txt" style="display:none">
+        <button class="toolbar-btn" data-tooltip="ייצוא PDF" onclick="exportPDF()">
+            <i class="fa-solid fa-file-pdf"></i>
+        </button>
+        <button class="toolbar-btn" data-tooltip="הדפסה" onclick="window.print()">
+            <i class="fa-solid fa-print"></i>
+        </button>
     </div>
 
-    <div class="section-title">פעולות מהירות</div>
-    <div class="file-input-wrapper">
-        <button class="btn-main" style="width: 100%;"><i class="fa-solid fa-file-word"></i> טען קובץ Word (.docx)</button>
-        <input type="file" id="file-input" accept=".docx">
+    <div class="toolbar-divider"></div>
+
+    <!-- View Controls -->
+    <div class="toolbar-group">
+        <button class="toolbar-btn" data-tooltip="הקטנה" onclick="changeZoom(-10)">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+        </button>
+        <span class="zoom-display" id="zoom-display">100%</span>
+        <button class="toolbar-btn" data-tooltip="הגדלה" onclick="changeZoom(10)">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+        </button>
+        <button class="toolbar-btn" data-tooltip="התאמה לחלון" onclick="fitZoom()">
+            <i class="fa-solid fa-expand"></i>
+        </button>
     </div>
 
-    <div class="section-title">פרטי הספר</div>
-    <div class="input-group">
-        <label>שם הספר (מילה 1 + מילה 2)</label>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="w1" value="בנין" oninput="render()">
-            <input type="text" id="w2" value="ציון" oninput="render()">
+    <div class="toolbar-divider"></div>
+
+    <!-- Page Side Toggle -->
+    <div class="side-toggle">
+        <button id="btn-right" class="active" onclick="setSide('right')">עמוד ימין</button>
+        <button id="btn-left" onclick="setSide('left')">עמוד שמאל</button>
+    </div>
+
+    <div class="toolbar-spacer"></div>
+
+    <!-- Status Indicators -->
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim);">
+        <span class="status-dot"></span>
+        <span id="ai-status">AI מוכן</span>
+    </div>
+</header>
+
+<!-- ==================== Main Body ==================== -->
+<div class="app-body">
+
+    <!-- ========== Sidebar ========== -->
+    <aside class="sidebar">
+        <div class="sidebar-tabs">
+            <button class="sidebar-tab active" onclick="switchTab('import')">
+                <i class="fa-solid fa-file-arrow-up"></i>
+                ייבוא
+            </button>
+            <button class="sidebar-tab" onclick="switchTab('settings')">
+                <i class="fa-solid fa-sliders"></i>
+                הגדרות
+            </button>
+            <button class="sidebar-tab" onclick="switchTab('typography')">
+                <i class="fa-solid fa-font"></i>
+                טיפוגרפיה
+            </button>
+            <button class="sidebar-tab" onclick="switchTab('ai')">
+                <i class="fa-solid fa-brain"></i>
+                AI
+            </button>
         </div>
-    </div>
 
-    <div class="section-title">טקסט לעיבוד</div>
-    <textarea id="text-input" style="height: 250px;" oninput="render()">סימן י
+        <!-- Tab: Import -->
+        <div class="tab-panel active" id="tab-import">
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-cloud-arrow-up"></i> טעינת קובץ</div>
+                <div class="drop-zone" id="drop-zone">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <div class="drop-text">גרור קובץ לכאן</div>
+                    <div class="drop-hint">או לחץ לבחירת קובץ Word / טקסט</div>
+                    <input type="file" id="file-input-drop" accept=".docx,.txt">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-keyboard"></i> הזנת טקסט ידנית</div>
+                <div class="input-row">
+                    <textarea id="text-input" placeholder="הדבק כאן את הטקסט לעימוד...">סימן י
 בענין ראוה מדברת
 גרסינן בגמרא כתובות (דף י"ג) ראוה מדברת עם אחד ואמרו לה מה טיבו של זה, איש פלוני וכהן הוא. רבן גמליאל ורבי אליעזר אומרים נאמנת, ורבי יהושע אומר אינה נאמנת.
 והנה יש לחקור ביסוד מחלוקתם, האם פליגי בדין 'ברי ושמא' או דלמא פליגי בדין נאמנות האשה להעיד על עצמה במקום שאין לה מגו.
 ביאור שיטת רבן גמליאל
-ובאמת בתוספות שם הקשו למה הוצרכו לומר שנאמנת מטעם הפה שאסור, והרי בלאו הכי יש לה חזקת כשרות. ונראה לומר דכל היכא דאיתחזק איסורא לא סמכינן אדיבורה בלא מגו.</textarea>
+ובאמת בתוספות שם הקשו למה הוצרכו לומר שנאמנת מטעם הפה שאסור, והרי בלאו הכי יש לה חזקת כשרות. ונראה לומר דכל היכא דאיתחזק איסורא לא סמכינן אדיבורה בלא מגו.
+ולפי זה מבואר היטב דברי רבן גמליאל, דסבירא ליה דנאמנת משום דאית לה מגו דאי בעיא אמרה מוכת עץ אני. ואף על גב דלא שכיח, מכל מקום כיון דאיכא מגו סמכינן עלה.
+ביאור שיטת רבי יהושע
+אמנם שיטת רבי יהושע צריכה ביאור, דלכאורה אם יש לה מגו למה אינה נאמנת. ויש לומר דרבי יהושע סבירא ליה דמגו במקום חזקה לא אמרינן, וכיון שיש כאן חזקת איסור, לא מהני מגו להוציאה מחזקתה.
+והנה הר"ן בחידושיו שם כתב טעם אחר בשיטת רבי יהושע, דסבירא ליה דכיון שראוה מדברת עם אחד, איתרע לה חזקת כשרות, ושוב אינה נאמנת אפילו במגו.</textarea>
+                </div>
+                <button class="btn btn-primary" onclick="processAndRender()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    עיבוד AI ועימוד
+                </button>
+            </div>
+        </div>
 
-    <button class="btn-main" onclick="render()">עדכן עימוד ידני</button>
-</aside>
+        <!-- Tab: Settings -->
+        <div class="tab-panel" id="tab-settings">
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-book"></i> פרטי הספר</div>
+                <div class="input-row">
+                    <label>שם הספר</label>
+                    <div class="dual-input">
+                        <input type="text" id="w1" value="בנין" placeholder="מילה ראשונה">
+                        <input type="text" id="w2" value="ציון" placeholder="מילה שנייה">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <label>מספר עמוד התחלתי (בעברית)</label>
+                    <input type="text" id="start-page" value="פ" placeholder="לדוגמה: פ">
+                </div>
+            </div>
 
-<main class="preview-area">
-    <div class="page">
-        <div class="running-header" id="header"></div>
-        <div class="content-body" id="content"></div>
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-ruler-combined"></i> מידות הדף</div>
+                <div class="input-row">
+                    <label>רוחב דף (ס"מ)</label>
+                    <input type="number" id="page-width" value="16.7" step="0.1" min="10" max="30" onchange="updatePageDimensions()">
+                </div>
+                <div class="input-row">
+                    <label>גובה דף (ס"מ)</label>
+                    <input type="number" id="page-height" value="23.6" step="0.1" min="15" max="40" onchange="updatePageDimensions()">
+                </div>
+                <div class="input-row">
+                    <label>שוליים צדדיים (ס"מ)</label>
+                    <input type="number" id="margin-side" value="2" step="0.1" min="0.5" max="5" onchange="updatePageDimensions()">
+                </div>
+                <div class="input-row">
+                    <label>רווח בין טורים (ס"מ)</label>
+                    <input type="number" id="col-gap" value="0.5" step="0.1" min="0.2" max="2" onchange="updatePageDimensions()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Typography -->
+        <div class="tab-panel" id="tab-typography">
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-text-height"></i> גוף הטקסט</div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>גודל פונט</span>
+                        <span class="slider-value" id="val-fontsize">12.5pt</span>
+                    </div>
+                    <input type="range" min="8" max="18" step="0.5" value="12.5" oninput="updateTypography('font-size', this.value + 'pt', 'val-fontsize')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>גובה שורה</span>
+                        <span class="slider-value" id="val-lineheight">1.45</span>
+                    </div>
+                    <input type="range" min="1.1" max="2.0" step="0.05" value="1.45" oninput="updateTypography('line-height', this.value, 'val-lineheight')">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-heading"></i> כותרות</div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>כותרת ראשית</span>
+                        <span class="slider-value" id="val-titlesize">30px</span>
+                    </div>
+                    <input type="range" min="18" max="48" step="1" value="30" oninput="updateTypography('title-size', this.value + 'px', 'val-titlesize')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>כותרת סימן</span>
+                        <span class="slider-value" id="val-simansize">18px</span>
+                    </div>
+                    <input type="range" min="12" max="30" step="1" value="18" oninput="updateTypography('siman-size', this.value + 'px', 'val-simansize')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-header">
+                        <span>מילה ראשונה (ד"ה)</span>
+                        <span class="slider-value" id="val-firstword">14pt</span>
+                    </div>
+                    <input type="range" min="10" max="20" step="0.5" value="14" oninput="updateTypography('first-word-size', this.value + 'pt', 'val-firstword')">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-font"></i> פונט גוף הטקסט</div>
+                <div class="input-row">
+                    <select id="font-family" onchange="updateBodyFont(this.value)">
+                        <option value="'Frank Ruhl Libre', serif" selected>Frank Ruhl Libre</option>
+                        <option value="'David Libre', serif">David Libre</option>
+                        <option value="serif">Serif (ברירת מחדל)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: AI Analysis -->
+        <div class="tab-panel" id="tab-ai">
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-chart-pie"></i> סטטיסטיקות</div>
+                <div class="ai-stats" id="ai-stats">
+                    <div class="ai-stat-card">
+                        <div class="stat-value" id="stat-pages">0</div>
+                        <div class="stat-label">עמודים</div>
+                    </div>
+                    <div class="ai-stat-card">
+                        <div class="stat-value" id="stat-words">0</div>
+                        <div class="stat-label">מילים</div>
+                    </div>
+                    <div class="ai-stat-card">
+                        <div class="stat-value" id="stat-paragraphs">0</div>
+                        <div class="stat-label">פסקאות</div>
+                    </div>
+                    <div class="ai-stat-card">
+                        <div class="stat-value" id="stat-refs">0</div>
+                        <div class="stat-label">מראי מקומות</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-layer-group"></i> מבנה שזוהה</div>
+                <div class="ai-segments" id="ai-segments">
+                    <div style="font-size: 12px; color: var(--text-dim); padding: 20px; text-align: center;">
+                        לחץ "עיבוד AI" כדי לנתח את הטקסט
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-section-title"><i class="fa-solid fa-book-bookmark"></i> מראי מקומות שזוהו</div>
+                <div class="ai-refs" id="ai-refs">
+                    <div style="font-size: 12px; color: var(--text-dim); text-align: center;">
+                        אין מראי מקומות עדיין
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ========== Workspace ========== -->
+    <main class="workspace">
+        <div class="workspace-toolbar">
+            <button class="page-nav-btn" onclick="navigatePage(-1)" id="prev-page-btn" disabled>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <span class="page-info" id="page-info">עמוד <strong>1</strong> מתוך <strong>1</strong></span>
+            <button class="page-nav-btn" onclick="navigatePage(1)" id="next-page-btn" disabled>
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div style="flex:1"></div>
+            <span class="page-info" id="dimensions-info">16.7×23.6 ס"מ | 2 טורים</span>
+        </div>
+
+        <div class="pages-container" id="pages-container">
+            <!-- Pages will be rendered here dynamically -->
+        </div>
+    </main>
+
+</div>
+
+<!-- ==================== Status Bar ==================== -->
+<div class="status-bar">
+    <div class="status-item">
+        <span class="status-dot"></span>
+        <span>מקרא AI v4.0</span>
     </div>
-</main>
+    <div class="status-item">
+        <i class="fa-solid fa-file-lines"></i>
+        <span id="status-pages">0 עמודים</span>
+    </div>
+    <div class="status-item">
+        <i class="fa-solid fa-align-right"></i>
+        <span id="status-words">0 מילים</span>
+    </div>
+    <div class="status-item">
+        <i class="fa-solid fa-brain"></i>
+        <span id="status-ai">AI פעיל</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="status-item">
+        <i class="fa-solid fa-keyboard"></i>
+        <span>Ctrl+P הדפסה | Ctrl+E ייצוא</span>
+    </div>
+</div>
 
+<!-- ==================== Loading Overlay ==================== -->
+<div class="loading-overlay" id="loading">
+    <div class="loading-content">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p id="loading-text">מעבד...</p>
+    </div>
+</div>
+
+<!-- ==================== Toast Container ==================== -->
+<div class="toast-container" id="toast-container"></div>
+
+
+<!-- ==================== JavaScript Engine ==================== -->
 <script>
+(function() {
+    'use strict';
+
+    /* ========================================================
+       State
+    ======================================================== */
     let currentSide = 'right';
+    let zoomLevel = 100;
+    let totalPages = 0;
+    let currentPage = 1;
+    let analysisResult = null;
+    let bodyFontFamily = "'Frank Ruhl Libre', serif";
 
-    // Handle Word File Import
-    document.getElementById('file-input').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+    /* ========================================================
+       Hebrew Utilities
+    ======================================================== */
+    const HebrewUtils = {
+        // Convert integer to Hebrew page number
+        numToHebrew(n) {
+            if (n <= 0) return '';
+            const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+            const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
+            const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
 
-        document.getElementById('loading').style.display = 'flex';
-        
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const arrayBuffer = event.target.result;
-            mammoth.extractRawText({arrayBuffer: arrayBuffer})
-                .then(function(result) {
-                    document.getElementById('text-input').value = result.value;
-                    render();
-                    document.getElementById('loading').style.display = 'none';
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    document.getElementById('loading').style.display = 'none';
-                });
-        };
-        reader.readAsArrayBuffer(file);
-    });
+            let result = '';
+            if (n >= 100) {
+                const h = Math.min(Math.floor(n / 100), 4);
+                result += hundreds[h];
+                n -= h * 100;
+            }
+            // Special cases for 15 and 16
+            if (n === 15) return result + 'ט"ו';
+            if (n === 16) return result + 'ט"ז';
 
-    function setSide(side) {
+            if (n >= 10) {
+                result += tens[Math.floor(n / 10)];
+                n = n % 10;
+            }
+            result += ones[n];
+
+            // Add gershayim
+            if (result.length === 1) return result + "'";
+            return result.slice(0, -1) + '"' + result.slice(-1);
+        },
+
+        // Parse Hebrew page input to integer
+        hebrewToNum(str) {
+            str = str.replace(/['"]/g, '');
+            const map = {
+                'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,
+                'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,
+                'ק':100,'ר':200,'ש':300,'ת':400
+            };
+            let total = 0;
+            for (const ch of str) {
+                if (map[ch]) total += map[ch];
+            }
+            return total || 1;
+        }
+    };
+
+    /* ========================================================
+       AI Text Analyzer
+    ======================================================== */
+    const AIAnalyzer = {
+        // Pattern definitions for Hebrew text classification
+        patterns: {
+            siman: /^סימן\s/,
+            subject: /^(בענין|בעניין|בדין|בדבר|בגדר)\s/,
+            talmudRef: /(גמרא|גמ'|בגמ'|דף\s+[א-ת]|ע"[אב]|עמוד\s+[אב])/,
+            rambamRef: /(רמב"ם|הלכות\s|פ"[א-ת]|הל')/,
+            shulchanAruch: /(שו"ע|שולחן\s+ערוך|או"ח|יו"ד|אה"ע|חו"מ)/,
+            authorOpinion: /^(ונראה|ולענ"ד|והנלע"ד|ולפי\s+זה|ומעתה|ולפי\s+דברינו)/,
+            citation: /^(וכתב|ופסק|והביא|כתב\s+ה|וכ"כ|ועי'|וראה|וכן\s+כתב|וכן\s+פסק)/,
+            parenthetical: /\([^)]{2,}\)/g
+        },
+
+        analyze(text) {
+            const lines = text.split('\n').filter(l => l.trim());
+            const segments = [];
+            let currentSiman = '';
+            let currentSubject = '';
+            let foundSubject = false;
+
+            lines.forEach((rawLine, idx) => {
+                const line = rawLine.trim();
+                if (!line) return;
+
+                const segment = this.classifyLine(line, idx, foundSubject);
+                if (segment.type === 'siman') currentSiman = line;
+                if (segment.type === 'subject') {
+                    currentSubject = line;
+                    foundSubject = true;
+                }
+                segment.siman = currentSiman;
+                segment.subject = currentSubject;
+                segments.push(segment);
+            });
+
+            const references = this.extractReferences(text);
+            const stats = this.computeStats(segments, text, references);
+
+            return { segments, references, stats };
+        },
+
+        classifyLine(line, index, foundSubject) {
+            // Priority-based classification
+
+            // 1. Siman header
+            if (this.patterns.siman.test(line)) {
+                return { type: 'siman', text: line, confidence: 0.99 };
+            }
+
+            // 2. Subject line (right after siman, starts with בענין etc.)
+            if (this.patterns.subject.test(line) && !foundSubject) {
+                return { type: 'subject', text: line, confidence: 0.95 };
+            }
+
+            // 3. Short line without punctuation = likely subtitle
+            if (line.length < 40 && !/[.,;:?!]/.test(line) && index > 0) {
+                return { type: 'subtitle', text: line, confidence: 0.85 };
+            }
+
+            // 4. Regular paragraph
+            const refs = this.detectInlineReferences(line);
+            return {
+                type: 'paragraph',
+                text: line,
+                confidence: 0.90,
+                references: refs,
+                hasAuthorOpinion: this.patterns.authorOpinion.test(line),
+                hasCitation: this.patterns.citation.test(line)
+            };
+        },
+
+        detectInlineReferences(text) {
+            const refs = [];
+            const patterns = [
+                { regex: /גמרא\s+(\S+)\s*\(דף\s+([^)]+)\)/g, type: 'talmud' },
+                { regex: /\(דף\s+([^)]+)\)/g, type: 'talmud' },
+                { regex: /רמב"ם\s+([^,.\n]+)/g, type: 'rambam' },
+                { regex: /(שו"ע|שולחן\s+ערוך)\s+([^,.\n]+)/g, type: 'shulchan_aruch' },
+                { regex: /(תוספות|תוס'|רש"י|ר"ן|רשב"א|ריטב"א|רמב"ן)\s+([^,.\n]*)/g, type: 'rishon' }
+            ];
+
+            patterns.forEach(({ regex, type }) => {
+                let match;
+                const re = new RegExp(regex.source, regex.flags);
+                while ((match = re.exec(text)) !== null) {
+                    refs.push({ type, text: match[0], position: match.index });
+                }
+            });
+
+            return refs;
+        },
+
+        extractReferences(fullText) {
+            const allRefs = [];
+            const refPatterns = [
+                { regex: /גמרא\s+\S+\s*\([^)]+\)/g, type: 'תלמוד' },
+                { regex: /\(דף\s+[^)]+\)/g, type: 'תלמוד' },
+                { regex: /רמב"ם\s+[^,.\n]+/g, type: 'רמב"ם' },
+                { regex: /(שו"ע|שולחן\s+ערוך)\s+[^,.\n]+/g, type: 'שו"ע' },
+                { regex: /(תוספות|תוס')\s+[^,.\n]*/g, type: 'ראשונים' },
+                { regex: /(רש"י|ר"ן|רשב"א|ריטב"א|רמב"ן)\s+[^,.\n]*/g, type: 'ראשונים' }
+            ];
+
+            refPatterns.forEach(({ regex, type }) => {
+                let match;
+                const re = new RegExp(regex.source, regex.flags);
+                while ((match = re.exec(fullText)) !== null) {
+                    allRefs.push({ type, text: match[0].trim() });
+                }
+            });
+
+            // Deduplicate
+            const seen = new Set();
+            return allRefs.filter(r => {
+                const key = r.text;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        },
+
+        computeStats(segments, text, references) {
+            const words = text.replace(/\s+/g, ' ').trim().split(' ').length;
+            return {
+                words,
+                paragraphs: segments.filter(s => s.type === 'paragraph').length,
+                simanim: segments.filter(s => s.type === 'siman').length,
+                subtitles: segments.filter(s => s.type === 'subtitle').length,
+                references: references.length,
+                characters: text.length
+            };
+        }
+    };
+
+    /* ========================================================
+       Rendering Engine
+    ======================================================== */
+    const Renderer = {
+        buildSegmentHTML(segment) {
+            switch (segment.type) {
+                case 'siman':
+                    return `<div class="siman-title">${this.escapeHTML(segment.text)}</div>`;
+
+                case 'subject':
+                    return `<div class="main-title">${this.escapeHTML(segment.text)}</div>`;
+
+                case 'subtitle':
+                    return `<div class="section-subtitle">${this.escapeHTML(segment.text)}</div>`;
+
+                case 'paragraph':
+                    return this.buildParagraph(segment);
+
+                default:
+                    return `<div class="paragraph">${this.escapeHTML(segment.text)}</div>`;
+            }
+        },
+
+        buildParagraph(segment) {
+            const words = segment.text.split(/\s+/);
+            const firstWord = words[0];
+            const rest = words.slice(1).join(' ');
+            const processedRest = this.highlightReferences(rest);
+            const winWidth = Math.max(50, firstWord.length * 10);
+
+            return `<div class="paragraph"><div class="window-spacer" style="width:${winWidth}px"></div><span class="first-word">${this.escapeHTML(firstWord)}</span> ${processedRest}</div>`;
+        },
+
+        highlightReferences(text) {
+            // Highlight parenthetical references
+            text = text.replace(/\(([^)]+)\)/g, '<span class="ref-highlight">($1)</span>');
+            return text;
+        },
+
+        escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        },
+
+        createPage(pageNum, startPageNum, side, w1, w2, simanText, subjectText) {
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.id = `page-${pageNum}`;
+
+            // Determine if this is a right or left page
+            const actualPageNum = startPageNum + pageNum - 1;
+            const isRight = actualPageNum % 2 === 0;
+            const effectiveSide = isRight ? 'right' : 'left';
+
+            const hebrewNum = HebrewUtils.numToHebrew(actualPageNum);
+            const numPos = effectiveSide === 'right' ? 'right: 2cm' : 'left: 2cm';
+
+            // Label
+            const label = document.createElement('div');
+            label.className = 'page-label';
+            label.textContent = `עמוד ${pageNum}`;
+            pageDiv.appendChild(label);
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'running-header';
+
+            if (effectiveSide === 'right') {
+                header.innerHTML = `
+                    <div class="page-num" style="${numPos}">${hebrewNum}</div>
+                    <div class="header-part">${this.escapeHTML(w1)}</div>
+                    <div class="header-gap">${this.escapeHTML(simanText)}</div>
+                    <div class="header-part">${this.escapeHTML(w2)}</div>
+                `;
+            } else {
+                header.innerHTML = `
+                    <div class="page-num" style="${numPos}">${hebrewNum}</div>
+                    <div class="header-part">${this.escapeHTML(w2)}</div>
+                    <div class="header-gap" style="font-size:12px">${this.escapeHTML(subjectText || '...')}</div>
+                    <div class="header-part">${this.escapeHTML(w1)}</div>
+                `;
+            }
+
+            pageDiv.appendChild(header);
+
+            // Content body
+            const content = document.createElement('div');
+            content.className = 'content-body';
+            content.style.fontFamily = bodyFontFamily;
+            pageDiv.appendChild(content);
+
+            return { pageDiv, content };
+        }
+    };
+
+    /* ========================================================
+       Pagination Engine
+    ======================================================== */
+    const Paginator = {
+        paginate(segments) {
+            const container = document.getElementById('pages-container');
+            container.innerHTML = '';
+
+            const w1 = document.getElementById('w1').value;
+            const w2 = document.getElementById('w2').value;
+            const startPageInput = document.getElementById('start-page').value;
+            const startPageNum = HebrewUtils.hebrewToNum(startPageInput);
+
+            // Track current siman and subject for headers
+            let currentSiman = '';
+            let currentSubject = '';
+
+            // Create first page
+            let pageNum = 1;
+            let { pageDiv, content } = Renderer.createPage(
+                pageNum, startPageNum, currentSide, w1, w2, currentSiman, currentSubject
+            );
+            container.appendChild(pageDiv);
+
+            // Build all segment elements
+            const elements = [];
+            segments.forEach(seg => {
+                if (seg.type === 'siman') currentSiman = seg.text;
+                if (seg.type === 'subject') currentSubject = seg.text;
+
+                const html = Renderer.buildSegmentHTML(seg);
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                const el = wrapper.firstElementChild;
+                el.dataset.siman = currentSiman;
+                el.dataset.subject = currentSubject;
+                elements.push(el);
+            });
+
+            // Place elements with overflow detection
+            currentSiman = '';
+            currentSubject = '';
+
+            elements.forEach(el => {
+                if (el.dataset.siman) currentSiman = el.dataset.siman;
+                if (el.dataset.subject) currentSubject = el.dataset.subject;
+
+                content.appendChild(el);
+
+                // Check overflow
+                if (content.scrollHeight > content.clientHeight + 2) {
+                    // Remove from current page
+                    content.removeChild(el);
+
+                    // Create new page
+                    pageNum++;
+                    const newPage = Renderer.createPage(
+                        pageNum, startPageNum, currentSide, w1, w2, currentSiman, currentSubject
+                    );
+                    container.appendChild(newPage.pageDiv);
+                    content = newPage.content;
+
+                    // Add element to new page
+                    content.appendChild(el);
+                }
+            });
+
+            totalPages = pageNum;
+            currentPage = 1;
+            updatePageInfo();
+            applyZoom();
+
+            return pageNum;
+        }
+    };
+
+    /* ========================================================
+       UI Functions
+    ======================================================== */
+
+    // Tab switching
+    window.switchTab = function(tabName) {
+        document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelector(`#tab-${tabName}`).classList.add('active');
+        // Find the tab button
+        const tabs = document.querySelectorAll('.sidebar-tab');
+        const tabMap = { 'import': 0, 'settings': 1, 'typography': 2, 'ai': 3 };
+        if (tabMap[tabName] !== undefined) tabs[tabMap[tabName]].classList.add('active');
+    };
+
+    // Side toggle
+    window.setSide = function(side) {
         currentSide = side;
         document.getElementById('btn-right').className = side === 'right' ? 'active' : '';
         document.getElementById('btn-left').className = side === 'left' ? 'active' : '';
-        render();
+        processAndRender();
+    };
+
+    // Zoom
+    window.changeZoom = function(delta) {
+        zoomLevel = Math.max(30, Math.min(200, zoomLevel + delta));
+        applyZoom();
+    };
+
+    window.fitZoom = function() {
+        const container = document.getElementById('pages-container');
+        const cw = container.clientWidth - 80;
+        const pageW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--p-width')) || 631;
+        // Convert cm to px (roughly 37.8px per cm)
+        const pageWidthPx = 16.7 * 37.8;
+        zoomLevel = Math.round((cw / pageWidthPx) * 100);
+        zoomLevel = Math.max(30, Math.min(200, zoomLevel));
+        applyZoom();
+    };
+
+    function applyZoom() {
+        const scale = zoomLevel / 100;
+        document.querySelectorAll('.page').forEach(p => {
+            p.style.transform = `scale(${scale})`;
+            p.style.marginBottom = `${(scale - 1) * parseFloat(getComputedStyle(p).height) * -1 + 40}px`;
+        });
+        document.getElementById('zoom-display').textContent = zoomLevel + '%';
     }
 
-    function render() {
-        const text = document.getElementById('text-input').value;
-        const w1 = document.getElementById('w1').value;
-        const w2 = document.getElementById('w2').value;
-        const lines = text.split('\n').filter(l => l.trim() !== "");
-        
-        let html = "";
-        let siman = "";
-        let subject = "";
+    // Page navigation
+    window.navigatePage = function(delta) {
+        const newPage = currentPage + delta;
+        if (newPage < 1 || newPage > totalPages) return;
+        currentPage = newPage;
+        const target = document.getElementById(`page-${currentPage}`);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        updatePageInfo();
+    };
 
-        lines.forEach((line, i) => {
-            line = line.trim();
-            if (line.includes("סימן")) {
-                siman = line;
-                html += `<div class="siman-title">${line}</div>`;
-            } else if (i < 5 && line.length < 50 && !line.includes(".") && !line.includes(",")) {
-                subject = line;
-                html += `<div class="main-title">${line}</div>`;
-            } else if (line.length < 35 && !line.includes(".") && !line.includes(",")) {
-                html += `<div style="text-align:center; font-weight:700; margin:15px 0; break-inside:avoid; font-family:'Frank Ruhl Libre'; font-size:19px;">${line}</div>`;
-            } else {
-                const words = line.split(" ");
-                const first = words[0];
-                const rest = words.slice(1).join(" ");
-                const winWidth = Math.max(45, first.length * 9);
-                html += `<div class="paragraph"><div class="window-spacer" style="width:${winWidth}px"></div><span class="vilna">${first}</span> ${rest}</div>`;
-            }
-        });
+    function updatePageInfo() {
+        document.getElementById('page-info').innerHTML =
+            `עמוד <strong>${currentPage}</strong> מתוך <strong>${totalPages}</strong>`;
+        document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+        document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+        document.getElementById('status-pages').textContent = `${totalPages} עמודים`;
+    }
 
-        document.getElementById('content').innerHTML = html;
+    // Page dimensions
+    window.updatePageDimensions = function() {
+        const w = document.getElementById('page-width').value;
+        const h = document.getElementById('page-height').value;
+        const m = document.getElementById('margin-side').value;
+        const g = document.getElementById('col-gap').value;
+        const contentW = (w - 2 * m).toFixed(1);
+        const colW = ((contentW - g) / 2).toFixed(1);
 
-        const header = document.getElementById('header');
-        const pNum = currentSide === 'right' ? 'פ' : 'פא';
-        const numPos = currentSide === 'right' ? 'right: 2cm' : 'left: 2cm';
+        document.documentElement.style.setProperty('--p-width', w + 'cm');
+        document.documentElement.style.setProperty('--p-height', h + 'cm');
+        document.documentElement.style.setProperty('--m-side', m + 'cm');
+        document.documentElement.style.setProperty('--col-gap', g + 'cm');
+        document.documentElement.style.setProperty('--content-w', contentW + 'cm');
+        document.documentElement.style.setProperty('--col-w', colW + 'cm');
 
-        if (currentSide === 'right') {
-            header.innerHTML = `
-                <div class="page-num" style="${numPos}">${pNum}</div>
-                <div class="header-part">${w1}</div>
-                <div class="header-gap">${siman}</div>
-                <div class="header-part">${w2}</div>
-            `;
+        document.getElementById('dimensions-info').textContent =
+            `${w}×${h} ס"מ | 2 טורים`;
+
+        processAndRender();
+    };
+
+    // Typography updates
+    window.updateTypography = function(prop, value, displayId) {
+        document.documentElement.style.setProperty(`--${prop}`, value);
+        document.getElementById(displayId).textContent = value;
+        processAndRender();
+    };
+
+    window.updateBodyFont = function(fontFamily) {
+        bodyFontFamily = fontFamily;
+        processAndRender();
+    };
+
+    // Toast notifications
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i> ${message}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Loading
+    function showLoading(text = 'מעבד...') {
+        document.getElementById('loading-text').textContent = text;
+        document.getElementById('loading').classList.add('visible');
+    }
+    function hideLoading() {
+        document.getElementById('loading').classList.remove('visible');
+    }
+
+    // Update AI panel
+    function updateAIPanel(result) {
+        // Stats
+        document.getElementById('stat-pages').textContent = totalPages;
+        document.getElementById('stat-words').textContent = result.stats.words;
+        document.getElementById('stat-paragraphs').textContent = result.stats.paragraphs;
+        document.getElementById('stat-refs').textContent = result.stats.references;
+
+        document.getElementById('status-words').textContent = `${result.stats.words} מילים`;
+
+        // Segments
+        const segContainer = document.getElementById('ai-segments');
+        const typeLabels = {
+            'siman': 'סימן',
+            'subject': 'נושא',
+            'subtitle': 'כותרת',
+            'paragraph': 'פסקה'
+        };
+
+        if (result.segments.length === 0) {
+            segContainer.innerHTML = '<div style="font-size: 12px; color: var(--text-dim); padding: 20px; text-align: center;">אין תוכן לניתוח</div>';
         } else {
-            header.innerHTML = `
-                <div class="page-num" style="${numPos}">${pNum}</div>
-                <div class="header-part">${w2}</div>
-                <div class="header-gap" style="font-size:13px">${subject || '...'}</div>
-                <div class="header-part">${w1}</div>
-            `;
+            segContainer.innerHTML = result.segments.map(seg => `
+                <div class="ai-segment type-${seg.type}">
+                    <span class="seg-type">${typeLabels[seg.type] || seg.type}</span>
+                    <span class="seg-text">${Renderer.escapeHTML(seg.text.substring(0, 60))}</span>
+                </div>
+            `).join('');
+        }
+
+        // References
+        const refsContainer = document.getElementById('ai-refs');
+        if (result.references.length === 0) {
+            refsContainer.innerHTML = '<div style="font-size: 12px; color: var(--text-dim); text-align: center;">לא זוהו מראי מקומות</div>';
+        } else {
+            refsContainer.innerHTML = result.references.map(ref => `
+                <div class="ai-ref-item">
+                    <i class="fa-solid fa-bookmark"></i>
+                    <span><strong>${ref.type}:</strong> ${Renderer.escapeHTML(ref.text)}</span>
+                </div>
+            `).join('');
         }
     }
 
-    window.onload = render;
+    /* ========================================================
+       Main Processing
+    ======================================================== */
+    window.processAndRender = function() {
+        const text = document.getElementById('text-input').value;
+        if (!text.trim()) {
+            document.getElementById('pages-container').innerHTML =
+                '<div style="color: var(--text-dim); font-size: 16px; padding: 60px;">הזן טקסט או טען קובץ כדי להתחיל</div>';
+            return;
+        }
+
+        // AI Analysis
+        document.getElementById('ai-status').textContent = 'AI מנתח...';
+        analysisResult = AIAnalyzer.analyze(text);
+        document.getElementById('ai-status').textContent = 'AI מוכן';
+
+        // Paginate and render
+        Paginator.paginate(analysisResult.segments);
+
+        // Update AI panel
+        updateAIPanel(analysisResult);
+
+        // Save to localStorage
+        try {
+            localStorage.setItem('mikra-ai-text', text);
+            localStorage.setItem('mikra-ai-w1', document.getElementById('w1').value);
+            localStorage.setItem('mikra-ai-w2', document.getElementById('w2').value);
+        } catch(e) { /* localStorage might be full or unavailable */ }
+    };
+
+    /* ========================================================
+       File Import
+    ======================================================== */
+    function handleFileImport(file) {
+        if (!file) return;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        showLoading('מייבא קובץ...');
+
+        if (ext === 'docx') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                mammoth.extractRawText({ arrayBuffer: e.target.result })
+                    .then(function(result) {
+                        document.getElementById('text-input').value = result.value;
+                        processAndRender();
+                        hideLoading();
+                        showToast(`הקובץ "${file.name}" נטען בהצלחה`, 'success');
+                    })
+                    .catch(function(err) {
+                        console.error(err);
+                        hideLoading();
+                        showToast('שגיאה בטעינת הקובץ', 'error');
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        } else if (ext === 'txt') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('text-input').value = e.target.result;
+                processAndRender();
+                hideLoading();
+                showToast(`הקובץ "${file.name}" נטען בהצלחה`, 'success');
+            };
+            reader.readAsText(file, 'UTF-8');
+        } else {
+            hideLoading();
+            showToast('פורמט קובץ לא נתמך. השתמש ב-.docx או .txt', 'error');
+        }
+    }
+
+    /* ========================================================
+       PDF Export
+    ======================================================== */
+    window.exportPDF = function() {
+        showLoading('מייצר PDF...');
+
+        const pages = document.querySelectorAll('.page');
+        const pagesContainer = document.createElement('div');
+
+        pages.forEach(page => {
+            const clone = page.cloneNode(true);
+            // Remove label
+            const label = clone.querySelector('.page-label');
+            if (label) label.remove();
+            // Reset transform
+            clone.style.transform = 'none';
+            clone.style.marginBottom = '0';
+            clone.style.boxShadow = 'none';
+            pagesContainer.appendChild(clone);
+        });
+
+        const opt = {
+            margin: 0,
+            filename: `${document.getElementById('w1').value}_${document.getElementById('w2').value}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: {
+                unit: 'cm',
+                format: [16.7, 23.6],
+                orientation: 'portrait'
+            },
+            pagebreak: { mode: ['css', 'legacy'] }
+        };
+
+        html2pdf().set(opt).from(pagesContainer).save()
+            .then(() => {
+                hideLoading();
+                showToast('PDF נוצר בהצלחה!', 'success');
+            })
+            .catch(err => {
+                console.error(err);
+                hideLoading();
+                showToast('שגיאה ביצירת PDF', 'error');
+            });
+    };
+
+    /* ========================================================
+       Event Listeners
+    ======================================================== */
+    function init() {
+        // File inputs
+        document.getElementById('file-input-hidden').addEventListener('change', function(e) {
+            handleFileImport(e.target.files[0]);
+        });
+        document.getElementById('file-input-drop').addEventListener('change', function(e) {
+            handleFileImport(e.target.files[0]);
+        });
+
+        // Drag & Drop
+        const dropZone = document.getElementById('drop-zone');
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+        });
+        dropZone.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) handleFileImport(file);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                exportPDF();
+            }
+        });
+
+        // Track scroll for current page detection
+        const pagesContainer = document.getElementById('pages-container');
+        pagesContainer.addEventListener('scroll', function() {
+            const pages = pagesContainer.querySelectorAll('.page');
+            const containerRect = pagesContainer.getBoundingClientRect();
+            const containerCenter = containerRect.top + containerRect.height / 2;
+
+            let closestPage = 1;
+            let closestDist = Infinity;
+
+            pages.forEach((page, i) => {
+                const rect = page.getBoundingClientRect();
+                const pageCenter = rect.top + rect.height / 2;
+                const dist = Math.abs(pageCenter - containerCenter);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestPage = i + 1;
+                }
+            });
+
+            if (closestPage !== currentPage) {
+                currentPage = closestPage;
+                updatePageInfo();
+            }
+        });
+
+        // Text input debounce
+        let debounceTimer;
+        document.getElementById('text-input').addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(processAndRender, 500);
+        });
+
+        // Book name inputs
+        document.getElementById('w1').addEventListener('input', processAndRender);
+        document.getElementById('w2').addEventListener('input', processAndRender);
+
+        // Restore from localStorage
+        try {
+            const savedText = localStorage.getItem('mikra-ai-text');
+            const savedW1 = localStorage.getItem('mikra-ai-w1');
+            const savedW2 = localStorage.getItem('mikra-ai-w2');
+            if (savedText) document.getElementById('text-input').value = savedText;
+            if (savedW1) document.getElementById('w1').value = savedW1;
+            if (savedW2) document.getElementById('w2').value = savedW2;
+        } catch(e) {}
+
+        // Initial render
+        processAndRender();
+        showToast('מקרא AI מוכן לעבודה', 'success');
+    }
+
+    // Start the app
+    document.addEventListener('DOMContentLoaded', init);
+
+})();
 </script>
 
 </body>
